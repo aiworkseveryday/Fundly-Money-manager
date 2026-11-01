@@ -52,7 +52,8 @@
           "faceIDPermission": "Allow Fundly to use Face ID to unlock the app."
         }
       ],
-      "expo-font"
+      "expo-font",
+      "./plugins/with-long-path-cmake"
     ],
     "experiments": {
       "typedRoutes": false,

@@ -61,7 +61,6 @@ function RootStack() {
           </Stack.Protected>
           <Stack.Protected guard={!session}>
             <Stack.Screen name="sign-in" />
-            <Stack.Screen name="verify" />
           </Stack.Protected>
         </Stack>
       </AppLockGate>
