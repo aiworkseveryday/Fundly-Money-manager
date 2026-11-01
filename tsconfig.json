@@ -8,8 +8,15 @@
       ],
       "@/assets/*": [
         "./assets/*"
+      ],
+      "@modules/*": [
+        "./modules/*"
       ]
-    }
+    },
+    "types": [
+      "jest",
+      "node"
+    ]
   },
   "include": [
     "**/*.ts",

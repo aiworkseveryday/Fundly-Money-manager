@@ -1,56 +1,53 @@
-# Welcome to your Expo app 👋
+# Fundly 🐷💚
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A playful personal money manager for India, built with Expo (SDK 58) and Supabase.
 
-## Get started
+- **Track** expenses, income and transfers across cash, bank, UPI and credit card accounts
+- **Budgets** per category each month, with green/amber/red progress rings
+- **Savings goals** with deadlines and suggested monthly amounts
+- **Bills and reminders**: local notifications before due dates, and one-tap "mark paid"
+- **Bank SMS import** (Android): parses bank and UPI alerts into a review inbox, so nothing is saved without your OK
+- **Insights**: category donut, a 6-month trend, and plain-language tips
+- **Streaks, XP and badges**, cheered on by Fundy the piggy bank
+- Dark mode, fingerprint app lock, and CSV export
 
-1. Install dependencies
+## Tech
+
+| Area | Choice |
+| --- | --- |
+| App | Expo SDK 58, Expo Router, TypeScript, React Query |
+| Backend | Supabase Postgres + email OTP auth, with row-level security on every table |
+| Native | Local Expo module `modules/sms-reader` (Kotlin) that reads the SMS inbox |
+| Charts | react-native-gifted-charts |
+
+## Setup
+
+1. `npm install`
+2. Copy `.env.example` to `.env` and add your Supabase URL and publishable key.
+3. Apply the database schema: `npx supabase link --project-ref <ref>` and then `npx supabase db push`.
+4. Plug in an Android phone with USB debugging on, then run:
 
    ```bash
-   npm install
+   npx expo run:android --device   # first time, or after native changes
+   npx expo start --dev-client     # day-to-day, with hot reload
    ```
 
-2. Start the app
+SMS reading needs this development build. It does not work in Expo Go.
 
-   ```bash
-   npx expo start
-   ```
+## Scripts
 
-In the output, you'll find options to open the app in a
+- `npm test`: unit tests (SMS parser, money formatting, gamification)
+- `npm run typecheck`: TypeScript check
+- `npx eslint src modules`: lint
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## Project layout
 
-You can start developing by editing the files inside the **src/app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
 ```
-
-This command will move the starter code to the **example** directory and create a blank **src/app** directory where you can start developing.
-
-### Other setup steps
-
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+src/app/            screens (Expo Router)
+src/components/     UI kit: Button3D, Card, Mascot, Progress, Confetti...
+src/data/           Supabase types + React Query hooks
+src/sms/            SMS parser, categoriser, sync
+src/gamification/   streak / XP / badge engine and celebrations
+modules/sms-reader/ native Android SMS module
+supabase/migrations SQL schema
+```
