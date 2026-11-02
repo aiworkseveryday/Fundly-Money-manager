@@ -1,22 +1,22 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Tabs } from 'expo-router/js-tabs';
 import { useEffect } from 'react';
 import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import type { IconName } from '@/components/Button3D';
+import { TabIcon, type TabIconName } from '@/components/TabIcons';
 import { useBills, useInvalidate } from '@/data/hooks';
 import { rescheduleBillReminders } from '@/lib/notifications';
 import { syncSms } from '@/sms/sync';
 import { useTheme } from '@/theme/ThemeProvider';
-import { fonts, tint } from '@/theme/tokens';
+import { fonts, palette, tint } from '@/theme/tokens';
 
-const TABS: { name: string; title: string; icon: IconName }[] = [
-  { name: 'index', title: 'Home', icon: 'home-variant' },
-  { name: 'activity', title: 'Activity', icon: 'format-list-bulleted-square' },
-  { name: 'insights', title: 'Insights', icon: 'chart-donut' },
-  { name: 'goals', title: 'Goals', icon: 'piggy-bank' },
-  { name: 'more', title: 'More', icon: 'dots-grid' },
+// Each tab lights up in its own colour when selected
+const TABS: { name: string; title: string; icon: TabIconName; color: string }[] = [
+  { name: 'index', title: 'Home', icon: 'home', color: palette.green },
+  { name: 'activity', title: 'Activity', icon: 'activity', color: palette.blue },
+  { name: 'insights', title: 'Insights', icon: 'insights', color: palette.orange },
+  { name: 'goals', title: 'Goals', icon: 'goals', color: palette.purple },
+  { name: 'more', title: 'More', icon: 'more', color: '#FF86D0' },
 ];
 
 /** Background jobs that run once the user is signed in. */
@@ -47,7 +47,6 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.info,
         tabBarInactiveTintColor: colors.tabInactive,
         tabBarStyle: {
           backgroundColor: colors.bg,
@@ -66,17 +65,16 @@ export default function TabLayout() {
           name={t.name}
           options={{
             title: t.title,
-            tabBarIcon: ({ color, focused }) => (
+            tabBarActiveTintColor: t.color,
+            tabBarIcon: ({ focused }) => (
               <View
                 style={{
-                  paddingHorizontal: 12,
-                  paddingVertical: 2,
-                  borderRadius: 12,
-                  borderWidth: 2,
-                  borderColor: focused ? colors.info : 'transparent',
-                  backgroundColor: focused ? tint(colors.info, 0.12) : 'transparent',
+                  paddingHorizontal: 14,
+                  paddingVertical: 3,
+                  borderRadius: 14,
+                  backgroundColor: focused ? tint(t.color, 0.18) : 'transparent',
                 }}>
-                <MaterialCommunityIcons name={t.icon} size={24} color={color as string} />
+                <TabIcon name={t.icon} focused={focused} color={focused ? t.color : colors.tabInactive} />
               </View>
             ),
           }}
