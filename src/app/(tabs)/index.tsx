@@ -13,7 +13,7 @@ import { useAccounts, useBills, useBudgets, useCategories, useInvalidate, usePen
 import { levelFor, liveStreak } from '@/gamification/engine';
 import { addDays, daysBetween, formatDay, fromISODate, startOfMonth } from '@/lib/dates';
 import { formatINR } from '@/lib/money';
-import { initials, shortName } from '@/lib/names';
+import { initials } from '@/lib/names';
 import { useTheme } from '@/theme/ThemeProvider';
 import { palette, radius, space, tint } from '@/theme/tokens';
 
@@ -84,14 +84,9 @@ export default function Home() {
               {initials(profile.data?.display_name)}
             </AppText>
           </Pressable>
-          <View style={{ flex: 1 }}>
-            <AppText variant="caption" muted>
-              {greeting()}
-            </AppText>
-            <AppText variant="heading" numberOfLines={1}>
-              {shortName(profile.data?.display_name)}
-            </AppText>
-          </View>
+          <AppText variant="heading" numberOfLines={1} style={{ flex: 1 }}>
+            {greeting()} 👋
+          </AppText>
           <Pressable onPress={() => router.push('/achievements')} style={styles.stats}>
             <View style={styles.stat}>
               <MaterialCommunityIcons name="fire" size={26} color={streak ? colors.streak : colors.tabInactive} />

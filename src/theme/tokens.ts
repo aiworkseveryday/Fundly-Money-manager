@@ -56,7 +56,7 @@ export const lightColors: ThemeColors = {
   dangerEdge: palette.redEdge,
   streak: palette.orange,
   xp: palette.yellow,
-  tabInactive: '#AFAFAF',
+  tabInactive: '#8A8A8A',
 };
 
 export const darkColors: ThemeColors = {
@@ -78,7 +78,7 @@ export const darkColors: ThemeColors = {
   dangerEdge: palette.redEdge,
   streak: palette.orange,
   xp: palette.yellow,
-  tabInactive: '#52656D',
+  tabInactive: '#8FA3AD',
 };
 
 export const fonts = {
