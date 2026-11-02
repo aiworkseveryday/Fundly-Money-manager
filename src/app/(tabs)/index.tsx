@@ -13,6 +13,7 @@ import { useAccounts, useBills, useBudgets, useCategories, useInvalidate, usePen
 import { levelFor, liveStreak } from '@/gamification/engine';
 import { addDays, daysBetween, formatDay, fromISODate, startOfMonth } from '@/lib/dates';
 import { formatINR } from '@/lib/money';
+import { initials, shortName } from '@/lib/names';
 import { useTheme } from '@/theme/ThemeProvider';
 import { palette, radius, space, tint } from '@/theme/tokens';
 
@@ -75,12 +76,20 @@ export default function Home() {
       <Screen refreshing={refreshing} onRefresh={invalidate}>
         {/* top bar */}
         <View style={styles.topBar}>
+          <Pressable
+            onPress={() => router.push('/settings')}
+            accessibilityLabel="Open profile"
+            style={[styles.avatar, { backgroundColor: colors.primary, borderBottomColor: colors.primaryEdge }]}>
+            <AppText variant="label" color="#fff">
+              {initials(profile.data?.display_name)}
+            </AppText>
+          </Pressable>
           <View style={{ flex: 1 }}>
             <AppText variant="caption" muted>
               {greeting()}
             </AppText>
-            <AppText variant="title" numberOfLines={1}>
-              {profile.data?.display_name ?? 'there'}
+            <AppText variant="heading" numberOfLines={1}>
+              {shortName(profile.data?.display_name)}
             </AppText>
           </View>
           <Pressable onPress={() => router.push('/achievements')} style={styles.stats}>
@@ -247,6 +256,7 @@ export default function Home() {
 
 const styles = StyleSheet.create({
   topBar: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  avatar: { width: 44, height: 44, borderRadius: 22, borderBottomWidth: 3, alignItems: 'center', justifyContent: 'center' },
   stats: { flexDirection: 'row', gap: space.md },
   stat: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   heroRow: { flexDirection: 'row', gap: space.sm, marginTop: space.md },

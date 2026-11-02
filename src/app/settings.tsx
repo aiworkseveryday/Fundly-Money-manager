@@ -11,6 +11,7 @@ import { useProfile, useUpdateProfile } from '@/data/hooks';
 import { isAppLockEnabled, setAppLockEnabled } from '@/features/AppLock';
 import { useAuth } from '@/features/auth';
 import { exportTransactionsCsv } from '@/lib/csv';
+import { initials } from '@/lib/names';
 import { supabase } from '@/lib/supabase';
 import { resetSmsSync, smsSupported } from '@/sms/sync';
 import { useTheme, type ThemePreference } from '@/theme/ThemeProvider';
@@ -50,7 +51,29 @@ export default function Settings() {
       <Header title="Settings" />
       <Screen edges={['bottom']} contentStyle={{ paddingTop: 0 }}>
         <Card style={{ gap: space.md }}>
-          <AppText variant="heading">Profile</AppText>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
+            <View
+              style={{
+                width: 56,
+                height: 56,
+                borderRadius: 28,
+                borderBottomWidth: 3,
+                backgroundColor: colors.primary,
+                borderBottomColor: colors.primaryEdge,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+              <AppText variant="heading" color="#fff">
+                {initials(displayName)}
+              </AppText>
+            </View>
+            <View style={{ flex: 1 }}>
+              <AppText variant="heading">{displayName || 'Profile'}</AppText>
+              <AppText variant="caption" muted numberOfLines={1}>
+                {session?.user.email}
+              </AppText>
+            </View>
+          </View>
           <Input label="Your name" value={displayName} onChangeText={setName} maxLength={30} />
           {name != null && name.trim() !== (profile.data?.display_name ?? '') && (
             <Button3D
@@ -60,9 +83,6 @@ export default function Settings() {
               loading={updateProfile.isPending}
             />
           )}
-          <AppText variant="caption" muted>
-            Signed in as {session?.user.email}
-          </AppText>
         </Card>
 
         <Card style={{ gap: space.md }}>
