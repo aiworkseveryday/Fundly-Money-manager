@@ -1,4 +1,4 @@
-import { RefreshControl, ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { KeyboardAvoidingView, RefreshControl, ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 import type { ReactNode } from 'react';
 
@@ -20,6 +20,8 @@ export function Screen({ children, scroll = true, edges = ['top'], refreshing, o
   const { colors } = useTheme();
   return (
     <SafeAreaView edges={edges} style={[styles.root, { backgroundColor: colors.bg }]}>
+      {/* Edge-to-edge Android no longer resizes the window for the keyboard, so make room ourselves */}
+      <KeyboardAvoidingView style={styles.root} behavior="padding">
       {scroll ? (
         <ScrollView
           contentContainerStyle={[styles.content, contentStyle]}
@@ -35,6 +37,7 @@ export function Screen({ children, scroll = true, edges = ['top'], refreshing, o
         <View style={[styles.content, { flex: 1 }, contentStyle]}>{children}</View>
       )}
       {footer && <View style={[styles.footer, { borderTopColor: colors.border }]}>{footer}</View>}
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

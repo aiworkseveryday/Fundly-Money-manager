@@ -39,9 +39,17 @@ export function Mascot({ size = 96, mood = 'happy', bounce = true }: { size?: nu
         {/* body */}
         <Ellipse cx="50" cy="52" rx="38" ry="32" fill={body} />
         <Ellipse cx="50" cy="60" rx="26" ry="18" fill={belly} />
-        {/* coin slot + coin */}
+        {/* coin slot + gold ₹ coin (same as the app icon) */}
         <Rect x="40" y="20" width="20" height="5" rx="2.5" fill={dark} />
-        {mood === 'celebrate' && <Circle cx="50" cy="12" r="7" fill="#FFC800" stroke="#E5B400" strokeWidth="2" />}
+        <Circle cx="50" cy="10" r="9.5" fill="#FFC800" stroke="#E5A100" strokeWidth="2" />
+        <Path
+          d="M46.2 5.8 H53.8 M46.2 8.8 H53.8 M46.2 5.8 H48.8 C52.6 5.8 52.6 11.8 48.8 11.8 H46.4 L52.6 16"
+          stroke="#9A6A00"
+          strokeWidth="1.7"
+          fill="none"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
         {/* eyes */}
         {mood === 'sleepy' ? (
           <>

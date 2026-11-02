@@ -1,6 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/AppText';
 import { Button3D } from '@/components/Button3D';
@@ -47,8 +47,7 @@ export default function SignIn() {
   };
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
-      <Screen edges={['top', 'bottom']} contentStyle={styles.content}>
+    <Screen edges={['top', 'bottom']} contentStyle={styles.content}>
         <View style={styles.hero}>
           <Mascot size={140} />
           <AppText variant="hero" color={colors.primary} center>
@@ -100,8 +99,7 @@ export default function SignIn() {
         </View>
         {error && <AppText color={colors.danger}>{error}</AppText>}
         <Button3D title={mode === 'sign-in' ? 'Sign in' : 'Create account'} onPress={submit} disabled={!valid} loading={busy} />
-      </Screen>
-    </KeyboardAvoidingView>
+    </Screen>
   );
 }
 

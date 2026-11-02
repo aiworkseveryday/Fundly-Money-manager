@@ -5,12 +5,15 @@ import {
   Nunito_900Black,
   useFonts,
 } from '@expo-google-fonts/nunito';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider as NavThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
+import { View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppLockGate } from '@/features/AppLock';
 import { AuthProvider, useAuth } from '@/features/auth';
@@ -22,7 +25,15 @@ SplashScreen.preventAutoHideAsync();
 function RootStack() {
   const { session, loading } = useAuth();
   const { colors, isDark } = useTheme();
-  const [fontsLoaded] = useFonts({ Nunito_600SemiBold, Nunito_700Bold, Nunito_800ExtraBold, Nunito_900Black });
+  const insets = useSafeAreaInsets();
+  // Preload the icon font too, otherwise icons can render blank on first paint
+  const [fontsLoaded] = useFonts({
+    Nunito_600SemiBold,
+    Nunito_700Bold,
+    Nunito_800ExtraBold,
+    Nunito_900Black,
+    ...MaterialCommunityIcons.font,
+  });
   const ready = fontsLoaded && !loading;
 
   useEffect(() => {
@@ -63,6 +74,8 @@ function RootStack() {
             <Stack.Screen name="sign-in" />
           </Stack.Protected>
         </Stack>
+        {/* Android draws edge-to-edge: keep scrolled content from showing through the status bar */}
+        <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: insets.top, backgroundColor: colors.bg }} />
       </AppLockGate>
     </NavThemeProvider>
   );

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Modal, Pressable, StyleSheet, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Modal, Pressable, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/AppText';
 import { Button3D } from '@/components/Button3D';
@@ -119,6 +119,7 @@ export default function Budgets() {
       </Screen>
 
       <Modal visible={!!editing} transparent animationType="slide" onRequestClose={() => setEditing(null)}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <Pressable style={styles.backdrop} onPress={() => setEditing(null)}>
           <Pressable style={[styles.sheet, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <AppText variant="heading">{editing?.name} budget</AppText>
@@ -127,6 +128,7 @@ export default function Budgets() {
             {editing && budgetByCat.has(editing.id) && <Button3D title="Remove budget" tone="ghost" onPress={() => onSave(true)} />}
           </Pressable>
         </Pressable>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );

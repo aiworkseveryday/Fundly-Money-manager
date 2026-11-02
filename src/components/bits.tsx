@@ -1,6 +1,7 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { ReactNode } from 'react';
 
 import { useTheme } from '@/theme/ThemeProvider';
@@ -62,8 +63,9 @@ export function SectionTitle({ title, action }: { title: string; action?: { labe
 /** Title bar for pushed / modal screens */
 export function Header({ title, right, close }: { title: string; right?: ReactNode; close?: boolean }) {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   return (
-    <View style={styles.header}>
+    <View style={[styles.header, { paddingTop: space.md + insets.top }]}>
       <Pressable onPress={() => router.back()} hitSlop={12} accessibilityLabel="Go back">
         <MaterialCommunityIcons name={close ? 'close' : 'arrow-left'} size={28} color={colors.textMuted} />
       </Pressable>

@@ -2,6 +2,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Tabs } from 'expo-router/js-tabs';
 import { useEffect } from 'react';
 import { View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { IconName } from '@/components/Button3D';
 import { useBills, useInvalidate } from '@/data/hooks';
@@ -39,6 +40,7 @@ function useStartupSync() {
 
 export default function TabLayout() {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   useStartupSync();
 
   return (
@@ -51,8 +53,10 @@ export default function TabLayout() {
           backgroundColor: colors.bg,
           borderTopColor: colors.border,
           borderTopWidth: 2,
-          height: 76,
+          // Include the Android navigation bar inset, otherwise it squeezes the icons out
+          height: 68 + insets.bottom,
           paddingTop: 8,
+          paddingBottom: insets.bottom + 6,
         },
         tabBarLabelStyle: { fontFamily: fonts.heavy, fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.4 },
       }}>
