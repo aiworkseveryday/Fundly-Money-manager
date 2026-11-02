@@ -21,6 +21,8 @@ export type Account = {
   color: string;
   icon: string;
   sms_last4: string | null;
+  /** false = savings kept aside: not counted in the Home total balance */
+  include_in_total: boolean;
   archived: boolean;
   created_at: string;
 };

@@ -41,7 +41,10 @@ export default function Home() {
   const tx = monthTx.data ?? [];
   const income = tx.filter((t) => t.kind === 'income').reduce((s, t) => s + t.amount, 0);
   const expense = tx.filter((t) => t.kind === 'expense').reduce((s, t) => s + t.amount, 0);
-  const totalBalance = (accounts.data ?? []).reduce((s, a) => s + a.balance, 0);
+  // Savings kept aside are left out of the total; their spends still count in Spent/Today below.
+  const totalBalance = (accounts.data ?? []).filter((a) => a.include_in_total).reduce((s, a) => s + a.balance, 0);
+  const setAside = (accounts.data ?? []).filter((a) => !a.include_in_total).reduce((s, a) => s + a.balance, 0);
+  const setAsideCount = (accounts.data ?? []).filter((a) => !a.include_in_total).length;
   const todaySpend = tx
     .filter((t) => t.kind === 'expense' && daysBetween(new Date(t.occurred_at), now) === 0)
     .reduce((s, t) => s + t.amount, 0);
@@ -111,6 +114,14 @@ export default function Home() {
           <AppText variant="hero" color="#fff">
             {formatINR(totalBalance)}
           </AppText>
+          {setAsideCount > 0 && (
+            <View style={styles.setAside}>
+              <MaterialCommunityIcons name="piggy-bank" size={16} color="rgba(255,255,255,0.85)" />
+              <AppText variant="caption" color="rgba(255,255,255,0.85)">
+                + {formatINR(setAside)} set aside in {setAsideCount === 1 ? '1 savings account' : `${setAsideCount} savings accounts`}
+              </AppText>
+            </View>
+          )}
           <View style={styles.heroRow}>
             <View style={[styles.heroStat, { backgroundColor: 'rgba(255,255,255,0.18)' }]}>
               <MaterialCommunityIcons name="arrow-down-bold-circle" size={20} color="#fff" />
@@ -254,6 +265,7 @@ const styles = StyleSheet.create({
   avatar: { width: 44, height: 44, borderRadius: 22, borderBottomWidth: 3, alignItems: 'center', justifyContent: 'center' },
   stats: { flexDirection: 'row', gap: space.md },
   stat: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  setAside: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   heroRow: { flexDirection: 'row', gap: space.sm, marginTop: space.md },
   heroStat: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6, padding: 8, borderRadius: radius.sm },
   tipRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },

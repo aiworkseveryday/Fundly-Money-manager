@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Alert, View } from 'react-native';
+import { Alert, Switch, View } from 'react-native';
 
 import { AppText } from '@/components/AppText';
 import { Button3D } from '@/components/Button3D';
@@ -28,6 +28,7 @@ export default function EditAccount() {
   const [color, setColor] = useState(account?.color ?? palette.blue);
   const [opening, setOpening] = useState(account ? String(Math.abs(account.opening_balance)) : '');
   const [last4, setLast4] = useState(account?.sms_last4 ?? '');
+  const [inTotal, setInTotal] = useState(account?.include_in_total ?? true);
 
   const isCredit = type === 'credit';
   const openingNum = Number(opening.replace(/,/g, '') || '0');
@@ -45,6 +46,7 @@ export default function EditAccount() {
         // A credit card's outstanding amount is money owed, so it is stored as negative.
         opening_balance: isCredit ? -Math.abs(openingNum) : openingNum,
         sms_last4: last4 || null,
+        include_in_total: inTotal,
       });
       router.back();
     } catch (e) {
@@ -98,6 +100,15 @@ export default function EditAccount() {
             onChangeText={(t) => setLast4(t.replace(/\D/g, ''))}
           />
         )}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
+          <View style={{ flex: 1 }}>
+            <AppText variant="label">Count in my total balance</AppText>
+            <AppText variant="caption" muted>
+              Turn off for savings you keep aside. Spends from it still show in your spends, but only reduce this account&apos;s balance.
+            </AppText>
+          </View>
+          <Switch value={inTotal} onValueChange={setInTotal} trackColor={{ true: colors.primary }} />
+        </View>
         <ColorPicker value={color} onChange={setColor} />
         {id && <Button3D title="Remove account" tone="ghost" onPress={onArchive} />}
       </Screen>

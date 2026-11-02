@@ -16,7 +16,9 @@ export default function Accounts() {
   const { colors } = useTheme();
   const accounts = useAccounts();
   const list = accounts.data ?? [];
-  const assets = list.filter((a) => a.type !== 'credit').reduce((s, a) => s + a.balance, 0);
+  const assets = list.filter((a) => a.type !== 'credit' && a.include_in_total).reduce((s, a) => s + a.balance, 0);
+  const savings = list.filter((a) => a.type !== 'credit' && !a.include_in_total).reduce((s, a) => s + a.balance, 0);
+  const hasSavings = list.some((a) => a.type !== 'credit' && !a.include_in_total);
   const owed = list.filter((a) => a.type === 'credit').reduce((s, a) => s + a.balance, 0);
 
   return (
@@ -32,6 +34,16 @@ export default function Accounts() {
               {formatINR(assets)}
             </AppText>
           </View>
+          {hasSavings && (
+            <View style={{ flex: 1 }}>
+              <AppText variant="caption" muted upper>
+                Set aside
+              </AppText>
+              <AppText variant="heading" color={colors.info}>
+                {formatINR(savings)}
+              </AppText>
+            </View>
+          )}
           <View style={{ flex: 1 }}>
             <AppText variant="caption" muted upper>
               Card dues
@@ -48,7 +60,13 @@ export default function Accounts() {
               icon={a.icon}
               color={a.color}
               title={a.name}
-              subtitle={[ACCOUNT_TYPES.find((t) => t.value === a.type)?.label, a.sms_last4 && `SMS ••${a.sms_last4}`].filter(Boolean).join(' · ')}
+              subtitle={[
+                ACCOUNT_TYPES.find((t) => t.value === a.type)?.label,
+                a.sms_last4 && `SMS ••${a.sms_last4}`,
+                !a.include_in_total && 'Not in total',
+              ]
+                .filter(Boolean)
+                .join(' · ')}
               onPress={() => router.push({ pathname: '/accounts/edit', params: { id: a.id } })}
               right={
                 <AppText variant="label" color={a.balance < 0 ? colors.expense : colors.text}>
@@ -59,7 +77,8 @@ export default function Accounts() {
           ))}
         </Card>
         <AppText variant="caption" muted>
-          Tip: add the last 4 digits of each bank account or card so Fundy can match bank SMS to the right account automatically.
+          Tip: add the last 4 digits of each bank account or card so Fundy can match bank SMS to the right account automatically. Keep a
+          savings account out of your total by opening it and turning off &quot;Count in my total balance&quot;.
         </AppText>
       </Screen>
     </View>
