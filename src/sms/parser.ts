@@ -3,6 +3,9 @@ export type ParsedSms = {
   amount: number;
   merchant: string | null;
   accountLast4: string | null;
+  /** slice atom (named savings pot) this message moves money into or out of */
+  atom?: string;
+  atomDir?: 'in' | 'out';
 };
 
 const AMOUNT = String.raw`([\d,]+(?:\.\d{1,2})?)`;
@@ -61,10 +64,50 @@ export function isLikelyBankSender(address: string | null | undefined): boolean 
   return !/^\+?\d{6,}$/.test(address.replace(/\s/g, ''));
 }
 
+// slice "atoms" are named savings pots. Exact wording varies, so look for the pot name in a few shapes:
+// 'atom "Internet bills"', 'atom: Internet bills', 'to your Internet bills atom'
+const ATOM_NAME_PATTERNS: RegExp[] = [
+  /\batom\s*(?:named|called)?\s*:?\s*["'“‘]([^"'”’\n]{1,40})["'”’]/i,
+  /["'“‘]([^"'”’\n]{1,40})["'”’]\s*atom\b/i,
+  /\b(?:to|from|in|into)\s+(?:your\s+|the\s+)?([A-Za-z0-9][A-Za-z0-9 &'-]{0,38}?)\s+atom\b/i,
+  /\batom\s*(?:named|called)?\s*:?\s*([A-Za-z0-9][A-Za-z0-9 &'-]{0,38}?)(?=\s+(?:on|via|ref|has|is|was|successfully|with|from|to)\b|[.,;!\n]|$)/i,
+];
+const ATOM_OUT = /\b(withdrawn|withdrew|moved out|taken out|redeemed|broke|broken|removed)\b/i;
+
+function parseAtom(body: string): { atom: string; atomDir: 'in' | 'out' } | null {
+  if (!/\batoms?\b/i.test(body)) return null;
+  let name: string | null = null;
+  for (const p of ATOM_NAME_PATTERNS) {
+    // "from IDFC to your Internet bills atom" -> keep only the part after the last to/from
+    const m = p
+      .exec(body)?.[1]
+      ?.replace(/^.*\b(?:to|into|from|in)\s+(?:your\s+|the\s+)?/i, '')
+      .trim();
+    if (m && !/^(your|the|an?|my|slice)$/i.test(m)) {
+      name = m;
+      break;
+    }
+  }
+  if (!name) return null;
+  const esc = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  // Money leaves the atom when it is the "from" side, or the message says withdrawn/redeemed
+  const fromAtom = new RegExp(String.raw`\bfrom\s+(?:your\s+|the\s+)?(?:atom\s*:?\s*)?["'“‘]?` + esc, 'i').test(body);
+  return { atom: name, atomDir: fromAtom || ATOM_OUT.test(body) ? 'out' : 'in' };
+}
+
 /** Extracts a completed debit/credit from an Indian bank or UPI SMS, or null if it is not one. */
 export function parseBankSms(body: string, sender?: string): ParsedSms | null {
   if (sender !== undefined && !isLikelyBankSender(sender)) return null;
   if (SKIP_PATTERNS.some((p) => p.test(body))) return null;
+
+  // Money moved into/out of a slice atom: the "credit" side is the pot, not a spend or income
+  const atom = parseAtom(body);
+  if (atom) {
+    const m = CURRENCY_AMOUNT.exec(body);
+    const amount = m ? toNumber(m[1]) : NaN;
+    if (!Number.isFinite(amount) || amount <= 0) return null;
+    return { kind: atom.atomDir === 'in' ? 'income' : 'expense', amount, merchant: null, accountLast4: null, ...atom };
+  }
 
   const debit = DEBIT_WORDS.exec(body);
   const credit = CREDIT_WORDS.exec(body);

@@ -12,6 +12,7 @@ import { ProgressBar } from '@/components/Progress';
 import { Screen } from '@/components/Screen';
 import { useCategories, useInvalidate, useMonthlySpend, useTransactions } from '@/data/hooks';
 import type { Category } from '@/data/types';
+import { analyseOther } from '@/insights/other';
 import { addMonths, daysBetween, formatMonth, fromISODate, monthKey, startOfMonth } from '@/lib/dates';
 import { formatINR } from '@/lib/money';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -32,6 +33,8 @@ export default function Insights() {
   const monthly = useMonthlySpend(6);
   const categories = useCategories();
   const monthTx = useTransactions({ from: month, to: addMonths(month, 1) });
+  const prevTx = useTransactions({ from: addMonths(month, -1), to: month });
+  const other = analyseOther(monthTx.data ?? [], prevTx.data ?? []);
 
   const catById = new Map<string, Category>((categories.data ?? []).map((c) => [c.id, c]));
   const rows = monthly.data ?? [];
@@ -58,7 +61,9 @@ export default function Insights() {
     const sum = (kind: 'income' | 'expense') => rows.filter((r) => r.month === k && r.kind === kind).reduce((s, r) => s + r.total, 0);
     return { key: k, label: formatMonth(m, false), income: sum('income'), expense: sum('expense') };
   });
-  const barWidth = Math.max(10, Math.min(18, (width - 120) / 18));
+  const chartWidth = width - space.lg * 2 - space.lg * 2 - 50;
+  // 6 months x (2 bars + 2px gap + 1.4-bar spacing) plus the edge spacing must fit, or Nov gets cut off
+  const barWidth = Math.max(6, Math.min(18, (chartWidth - 16 - 6 * 2) / (6 * 3.4)));
   const barData = trend.flatMap((t) => [
     {
       value: t.income,
@@ -187,6 +192,54 @@ export default function Insights() {
         </>
       )}
 
+      {/* what went under Other */}
+      <SectionTitle title="Spends under Other" />
+      {other.total > 0 ? (
+        <Card style={{ gap: space.sm }}>
+          <AppText>
+            <AppText variant="label">{formatINR(other.total)}</AppText> went under Other this month ({Math.round(other.share * 100)}% of spends)
+            {other.prevTotal > 0
+              ? `, ${other.total >= other.prevTotal ? 'up' : 'down'} from ${formatINR(other.prevTotal)} last month.`
+              : '.'}
+          </AppText>
+          {other.groups.slice(0, 6).map((g) => (
+            <View key={g.label} style={styles.otherRow}>
+              <AppText variant="label" style={{ flex: 1 }} numberOfLines={1}>
+                {g.label}
+                {g.isNew && (
+                  <AppText variant="caption" color={colors.info}>
+                    {'  '}NEW
+                  </AppText>
+                )}
+              </AppText>
+              <AppText variant="caption" muted>
+                {g.count}×{'  '}
+              </AppText>
+              <AppText variant="label">{formatINR(g.total)}</AppText>
+            </View>
+          ))}
+          {other.suggestions.map((g) => (
+            <View key={`s-${g.label}`} style={[styles.tip, { borderColor: colors.border }]}>
+              <MaterialCommunityIcons name="lightbulb-on-outline" size={22} color={palette.yellowEdge} />
+              <AppText variant="caption" style={{ flex: 1 }}>
+                {g.count > 1
+                  ? `"${g.label}" came up ${g.count} times (${formatINR(g.total)}). If it's a regular thing, give it its own category or add it to your monthly plan.`
+                  : `"${g.label}" was a big one-off (${formatINR(g.total)}). Plan for it next time, or keep it in Miscellaneous.`}
+              </AppText>
+            </View>
+          ))}
+          {other.unnamed > 0 && (
+            <AppText variant="caption" muted>
+              {other.unnamed} spend{other.unnamed > 1 ? 's have' : ' has'} no note. Add a note when you log so Fundy can spot patterns.
+            </AppText>
+          )}
+        </Card>
+      ) : (
+        <Card>
+          <AppText muted>Nothing under Other this month. Everything has a home 🎉</AppText>
+        </Card>
+      )}
+
       {/* trend */}
       <SectionTitle title="Last 6 months" />
       {hasTrend ? (
@@ -210,7 +263,8 @@ export default function Insights() {
             barBorderTopRightRadius={4}
             noOfSections={4}
             height={170}
-            width={width - space.lg * 2 - space.lg * 2 - 50}
+            width={chartWidth}
+            endSpacing={8}
             yAxisThickness={0}
             xAxisThickness={2}
             xAxisColor={colors.border}
@@ -266,6 +320,7 @@ export default function Insights() {
 }
 
 const styles = StyleSheet.create({
+  otherRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   legendRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
   legendTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm },
   tipHeader: { flexDirection: 'row', gap: space.sm, alignItems: 'flex-start' },

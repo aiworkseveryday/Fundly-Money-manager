@@ -3,17 +3,21 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { addMonths, monthKey, toISODate } from '@/lib/dates';
 import { num } from '@/lib/money';
 import { supabase, unwrap } from '@/lib/supabase';
+import { buildInbox } from '@/sms/transfers';
 import type {
   Account,
   AccountWithBalance,
   Bill,
-  Budget,
   Category,
   Goal,
   GoalWithProgress,
+  Loan,
+  LoanPayment,
   MonthlySpend,
   NewTransaction,
+  PlanItem,
   Profile,
+  QuickTemplate,
   SmsPending,
   Transaction,
   TransactionRow,
@@ -71,8 +75,52 @@ export function useAccounts() {
 export function useSaveAccount() {
   return useWrite(async (a: Partial<Account> & Pick<Account, 'name' | 'type'>) => {
     const { id, ...rest } = a;
+    // Only one account can be the default
+    if (rest.is_default) unwrap(await supabase.from('accounts').update({ is_default: false }).eq('is_default', true));
     if (id) unwrap(await supabase.from('accounts').update(rest).eq('id', id));
     else unwrap(await supabase.from('accounts').insert(rest));
+  });
+}
+
+/** The account quick-add and SMS cards start with: the marked default, else the first one. */
+export function defaultAccount<T extends Account>(accounts: T[] | undefined): T | undefined {
+  return accounts?.find((a) => a.is_default) ?? accounts?.[0];
+}
+
+/** Finds an account by name (case-insensitive) or creates it, e.g. the hidden "slice atoms" account. */
+export async function ensureAccount(name: string, extra: Partial<Account>): Promise<string> {
+  const found = unwrap(await supabase.from('accounts').select('id').ilike('name', name).eq('archived', false).limit(1)) as { id: string }[];
+  if (found.length) return found[0].id;
+  return (unwrap(await supabase.from('accounts').insert({ name, ...extra }).select('id').single()) as { id: string }).id;
+}
+
+/** Finds or creates an expense/income category by name. */
+export async function ensureCategory(name: string, kind: 'expense' | 'income', icon: string, color: string): Promise<string> {
+  const found = unwrap(await supabase.from('categories').select('id').ilike('name', name).eq('kind', kind).limit(1)) as { id: string }[];
+  if (found.length) return found[0].id;
+  return (unwrap(await supabase.from('categories').insert({ name, kind, icon, color, sort_order: 50 }).select('id').single()) as { id: string })
+    .id;
+}
+
+/** Makes the account balance match the real one by logging the difference (interest earned, or spends that were missed). */
+export function useAdjustBalance() {
+  return useWrite(async ({ account, actual }: { account: AccountWithBalance; actual: number }) => {
+    const diff = Math.round((actual - account.balance) * 100) / 100;
+    if (!diff) return 0;
+    const up = diff > 0;
+    const categoryId = up
+      ? await ensureCategory('Interest', 'income', 'chart-line', '#00CD9C')
+      : await ensureCategory('Other', 'expense', 'dots-horizontal', '#AFAFAF');
+    await insertTransaction({
+      kind: up ? 'income' : 'expense',
+      amount: Math.abs(diff),
+      account_id: account.id,
+      to_account_id: null,
+      category_id: categoryId,
+      note: up ? 'Balance check: interest / untracked money in' : 'Balance check: untracked spends',
+      occurred_at: new Date().toISOString(),
+    });
+    return diff;
   });
 }
 
@@ -170,46 +218,6 @@ export function useMonthlySpend(months = 6) {
       ) as MonthlySpend[];
       return rows.map((r) => ({ ...r, total: num(r.total) }));
     },
-  });
-}
-
-// ---------------------------------------------------------------- budgets
-export function useBudgets(month: Date) {
-  const key = monthKey(month);
-  return useQuery({
-    queryKey: qk('budgets', key),
-    queryFn: async () =>
-      (unwrap(await supabase.from('budgets').select('*').eq('month', key)) as Budget[]).map((b) => ({ ...b, amount: num(b.amount) })),
-  });
-}
-
-export function useSetBudget() {
-  return useWrite(async ({ categoryId, month, amount }: { categoryId: string; month: Date; amount: number | null }) => {
-    const key = monthKey(month);
-    if (amount == null) {
-      unwrap(await supabase.from('budgets').delete().eq('category_id', categoryId).eq('month', key));
-    } else {
-      unwrap(
-        await supabase
-          .from('budgets')
-          .upsert({ category_id: categoryId, month: key, amount }, { onConflict: 'user_id,category_id,month' }),
-      );
-    }
-  });
-}
-
-/** Copies last month's budgets into this month (skipping ones already set). */
-export function useCopyBudgets() {
-  return useWrite(async (month: Date) => {
-    const prev = unwrap(await supabase.from('budgets').select('category_id, amount').eq('month', monthKey(addMonths(month, -1)))) as Budget[];
-    if (!prev.length) return 0;
-    unwrap(
-      await supabase.from('budgets').upsert(
-        prev.map((b) => ({ category_id: b.category_id, amount: b.amount, month: monthKey(month) })),
-        { onConflict: 'user_id,category_id,month', ignoreDuplicates: true },
-      ),
-    );
-    return prev.length;
   });
 }
 
@@ -311,8 +319,188 @@ export function usePendingSms() {
   });
 }
 
+/** Number of inbox cards: a debit + credit pair about the same money counts once. */
+export function usePendingCount() {
+  const pending = usePendingSms();
+  const accounts = useAccounts();
+  return buildInbox(pending.data ?? [], accounts.data ?? []).length;
+}
+
 export function useSetSmsStatus() {
   return useWrite(async ({ id, status }: { id: string; status: SmsPending['status'] }) => {
     unwrap(await supabase.from('sms_pending').update({ status }).eq('id', id));
+  });
+}
+
+// ---------------------------------------------------------------- monthly plan
+export function usePlanItems() {
+  return useQuery({
+    queryKey: qk('plan-items'),
+    queryFn: async () =>
+      (unwrap(await supabase.from('plan_items').select('*').order('sort_order').order('created_at')) as PlanItem[]).map((p) => ({
+        ...p,
+        amount: num(p.amount),
+      })),
+  });
+}
+
+export function useSavePlanItem() {
+  return useWrite(async (p: Partial<PlanItem> & Pick<PlanItem, 'name' | 'amount' | 'grp'>) => {
+    const { id, ...rest } = p;
+    if (id) unwrap(await supabase.from('plan_items').update(rest).eq('id', id));
+    else unwrap(await supabase.from('plan_items').insert(rest));
+  });
+}
+
+export function useDeletePlanItem() {
+  return useWrite(async (id: string) => {
+    unwrap(await supabase.from('plan_items').delete().eq('id', id));
+  });
+}
+
+export function useInsertPlan() {
+  return useWrite(async (rows: Omit<PlanItem, 'id'>[]) => {
+    unwrap(await supabase.from('plan_items').insert(rows));
+  });
+}
+
+export function usePlanChecks(month: Date) {
+  const key = monthKey(month);
+  return useQuery({
+    queryKey: qk('plan-checks', key),
+    queryFn: async () => new Set((unwrap(await supabase.from('plan_checks').select('item_id').eq('month', key)) as { item_id: string }[]).map((c) => c.item_id)),
+  });
+}
+
+export function useTogglePlanCheck() {
+  return useWrite(async ({ itemId, month, checked }: { itemId: string; month: Date; checked: boolean }) => {
+    const key = monthKey(month);
+    if (checked) unwrap(await supabase.from('plan_checks').upsert({ item_id: itemId, month: key }, { onConflict: 'item_id,month', ignoreDuplicates: true }));
+    else unwrap(await supabase.from('plan_checks').delete().eq('item_id', itemId).eq('month', key));
+  });
+}
+
+// ---------------------------------------------------------------- quick add buttons
+export function useQuickTemplates() {
+  return useQuery({
+    queryKey: qk('quick-templates'),
+    queryFn: async () =>
+      (unwrap(await supabase.from('quick_templates').select('*').order('sort_order').order('created_at')) as QuickTemplate[]).map((q) => ({
+        ...q,
+        amount: num(q.amount),
+      })),
+  });
+}
+
+export function useSaveQuickTemplate() {
+  return useWrite(async (q: Partial<QuickTemplate> & Pick<QuickTemplate, 'label' | 'amount'>) => {
+    const { id, ...rest } = q;
+    if (id) unwrap(await supabase.from('quick_templates').update(rest).eq('id', id));
+    else unwrap(await supabase.from('quick_templates').insert(rest));
+  });
+}
+
+export function useDeleteQuickTemplate() {
+  return useWrite(async (id: string) => {
+    unwrap(await supabase.from('quick_templates').delete().eq('id', id));
+  });
+}
+
+
+// ---------------------------------------------------------------- loans
+export function useLoans() {
+  return useQuery({
+    queryKey: qk('loans'),
+    queryFn: async () =>
+      (unwrap(await supabase.from('loans').select('*').is('closed_at', null).order('created_at')) as Loan[]).map((l) => ({
+        ...l,
+        emi: num(l.emi),
+        annual_rate: num(l.annual_rate),
+        outstanding: num(l.outstanding),
+      })),
+  });
+}
+
+export function useLoanPayments() {
+  return useQuery({
+    queryKey: qk('loan-payments'),
+    queryFn: async () =>
+      (unwrap(await supabase.from('loan_payments').select('*').order('paid_on')) as LoanPayment[]).map((p) => ({ ...p, amount: num(p.amount) })),
+  });
+}
+
+export function useSaveLoan() {
+  return useWrite(async (l: Partial<Loan> & Pick<Loan, 'name' | 'emi' | 'annual_rate' | 'outstanding'>) => {
+    const { id, ...rest } = l;
+    if (id) unwrap(await supabase.from('loans').update(rest).eq('id', id));
+    else unwrap(await supabase.from('loans').insert(rest));
+  });
+}
+
+export function useCloseLoan() {
+  return useWrite(async (id: string) => {
+    unwrap(await supabase.from('loans').update({ closed_at: new Date().toISOString() }).eq('id', id));
+  });
+}
+
+/**
+ * Records an EMI or prepayment against a loan. Unless it came from an SMS that already created the
+ * spend, it also logs the money leaving the paying account so balances and the plan stay right.
+ */
+export async function recordLoanPayment(args: {
+  loan: Loan;
+  kind: LoanPayment['kind'];
+  amount: number;
+  paidOn: Date;
+  accountId: string | null | undefined;
+  transactionId?: string | null;
+}) {
+  let transactionId = args.transactionId ?? null;
+  // The bank SMS for an EMI already ticked by hand this month: keep one payment and one spend, the SMS one
+  if (transactionId && args.kind === 'emi') {
+    const from = toISODate(new Date(args.paidOn.getFullYear(), args.paidOn.getMonth(), 1));
+    const to = toISODate(new Date(args.paidOn.getFullYear(), args.paidOn.getMonth() + 1, 1));
+    const [ticked] = unwrap(
+      await supabase.from('loan_payments').select('*').eq('loan_id', args.loan.id).eq('kind', 'emi').gte('paid_on', from).lt('paid_on', to).limit(1),
+    ) as LoanPayment[];
+    if (ticked) {
+      unwrap(await supabase.from('loan_payments').update({ transaction_id: transactionId, amount: args.amount }).eq('id', ticked.id));
+      if (ticked.transaction_id) unwrap(await supabase.from('transactions').delete().eq('id', ticked.transaction_id).neq('source', 'sms'));
+      return;
+    }
+  }
+  if (!transactionId && args.accountId) {
+    const categoryId = await ensureCategory('EMI & Loans', 'expense', 'bank-transfer', '#FF4B4B');
+    const tx = await insertTransaction({
+      kind: 'expense',
+      amount: args.amount,
+      account_id: args.accountId,
+      to_account_id: null,
+      category_id: categoryId,
+      note: `${args.loan.name} ${args.kind === 'emi' ? 'EMI' : 'prepayment'}`,
+      occurred_at: args.paidOn.toISOString(),
+    });
+    transactionId = tx.id;
+  }
+  unwrap(
+    await supabase.from('loan_payments').insert({
+      loan_id: args.loan.id,
+      kind: args.kind,
+      amount: args.amount,
+      paid_on: toISODate(args.paidOn),
+      transaction_id: transactionId,
+    }),
+  );
+}
+
+export function useRecordLoanPayment() {
+  return useWrite(recordLoanPayment);
+}
+
+export function useDeleteLoanPayment() {
+  return useWrite(async (p: LoanPayment) => {
+    unwrap(await supabase.from('loan_payments').delete().eq('id', p.id));
+    // the spend goes too, unless it came from a bank SMS (that money really left the account)
+    if (p.transaction_id) unwrap(await supabase.from('transactions').delete().eq('id', p.transaction_id).neq('source', 'sms'));
   });
 }

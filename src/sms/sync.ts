@@ -49,6 +49,8 @@ export async function syncSms(): Promise<number> {
         amount: parsed.amount,
         merchant: parsed.merchant,
         account_last4: parsed.accountLast4,
+        atom: parsed.atom ?? null,
+        atom_dir: parsed.atomDir ?? null,
         occurred_at: new Date(sms.date).toISOString(),
       },
     ];

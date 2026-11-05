@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import { useState } from 'react';
 import { View } from 'react-native';
 
 import { AppText } from '@/components/AppText';
@@ -7,7 +8,8 @@ import { Card } from '@/components/Card';
 import { Header, ListRow } from '@/components/bits';
 import { Screen } from '@/components/Screen';
 import { ACCOUNT_TYPES } from '@/data/constants';
-import { useAccounts } from '@/data/hooks';
+import { defaultAccount, useAccounts, useTransactions } from '@/data/hooks';
+import { startOfMonth } from '@/lib/dates';
 import { formatINR } from '@/lib/money';
 import { useTheme } from '@/theme/ThemeProvider';
 import { space } from '@/theme/tokens';
@@ -19,7 +21,14 @@ export default function Accounts() {
   const assets = list.filter((a) => a.type !== 'credit' && a.include_in_total).reduce((s, a) => s + a.balance, 0);
   const savings = list.filter((a) => a.type !== 'credit' && !a.include_in_total).reduce((s, a) => s + a.balance, 0);
   const hasSavings = list.some((a) => a.type !== 'credit' && !a.include_in_total);
-  const owed = list.filter((a) => a.type === 'credit').reduce((s, a) => s + a.balance, 0);
+  // the main spending account (slice): money moved in this month vs spent from it
+  const main = defaultAccount(list.filter((a) => a.type !== 'cash'));
+  const [monthStart] = useState(() => startOfMonth(new Date()));
+  const mainTx = useTransactions({ from: monthStart, accountId: main?.id }).data ?? [];
+  const added = mainTx
+    .filter((t) => (t.kind === 'transfer' && t.to_account_id === main?.id) || (t.kind === 'income' && t.account_id === main?.id))
+    .reduce((s, t) => s + t.amount, 0);
+  const spent = mainTx.filter((t) => t.kind === 'expense' && t.account_id === main?.id).reduce((s, t) => s + t.amount, 0);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -44,14 +53,19 @@ export default function Accounts() {
               </AppText>
             </View>
           )}
-          <View style={{ flex: 1 }}>
-            <AppText variant="caption" muted upper>
-              Card dues
-            </AppText>
-            <AppText variant="heading" color={owed < 0 ? colors.expense : colors.text}>
-              {formatINR(Math.abs(Math.min(0, owed)))}
-            </AppText>
-          </View>
+          {main && (
+            <View style={{ flex: 1 }}>
+              <AppText variant="caption" muted upper numberOfLines={1}>
+                {main.name}
+              </AppText>
+              <AppText variant="heading" color={added && spent > added ? colors.expense : colors.text}>
+                {formatINR(spent)}
+              </AppText>
+              <AppText variant="caption" muted>
+                spent of {formatINR(added)} added this month
+              </AppText>
+            </View>
+          )}
         </Card>
         <Card style={{ paddingVertical: space.sm }}>
           {list.map((a) => (

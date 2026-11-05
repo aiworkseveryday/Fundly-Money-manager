@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router/js-tabs';
 import { useEffect } from 'react';
-import { View } from 'react-native';
+import { AppState, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { TabIcon, type TabIconName } from '@/components/TabIcons';
@@ -25,11 +25,18 @@ function useStartupSync() {
   const bills = useBills();
 
   useEffect(() => {
-    syncSms()
-      .then((n) => {
-        if (n > 0) invalidate();
-      })
-      .catch((e) => console.warn('SMS sync failed', e));
+    const run = () =>
+      syncSms()
+        .then((n) => {
+          if (n > 0) invalidate();
+        })
+        .catch((e) => console.warn('SMS sync failed', e));
+    run();
+    // New bank SMS usually arrive while Fundly is in the background: scan again on return
+    const sub = AppState.addEventListener('change', (s) => {
+      if (s === 'active') run();
+    });
+    return () => sub.remove();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

@@ -36,7 +36,7 @@ export default function EditCategory() {
   };
 
   const onDelete = () =>
-    Alert.alert('Delete category?', 'Transactions in it become uncategorised and its budgets are removed.', [
+    Alert.alert('Delete category?', 'Transactions in it become uncategorised.', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete',

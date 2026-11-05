@@ -1,7 +1,7 @@
 import { addDays, toISODate } from '@/lib/dates';
 import type { Profile } from '@/data/types';
 
-export type XpEvent = 'log' | 'sms_review' | 'goal_contribution' | 'goal_complete' | 'bill_paid' | 'budget_set';
+export type XpEvent = 'log' | 'sms_review' | 'goal_contribution' | 'goal_complete' | 'bill_paid';
 
 export const XP_FOR: Record<XpEvent, number> = {
   log: 10,
@@ -9,7 +9,6 @@ export const XP_FOR: Record<XpEvent, number> = {
   goal_contribution: 15,
   goal_complete: 50,
   bill_paid: 10,
-  budget_set: 5,
 };
 
 export type Badge = { id: string; title: string; description: string; emoji: string };
@@ -20,7 +19,6 @@ export const BADGES: Badge[] = [
   { id: 'streak_7', title: 'On Fire', description: '7-day logging streak', emoji: '🚀' },
   { id: 'streak_30', title: 'Unstoppable', description: '30-day logging streak', emoji: '🏆' },
   { id: 'xp_500', title: 'Money Nerd', description: 'Earned 500 XP', emoji: '🤓' },
-  { id: 'budget_boss', title: 'Budget Boss', description: 'Set your first budget', emoji: '🎯' },
   { id: 'goal_getter', title: 'Goal Getter', description: 'Completed a savings goal', emoji: '💎' },
   { id: 'sms_sorter', title: 'Inbox Zero', description: 'Reviewed a bank SMS', emoji: '📬' },
 ];
@@ -78,7 +76,6 @@ export function applyActivity(profile: Profile, event: XpEvent, today = new Date
   award('streak_7', streak >= 7);
   award('streak_30', streak >= 30);
   award('xp_500', xp >= 500);
-  award('budget_boss', event === 'budget_set');
   award('goal_getter', event === 'goal_complete');
   award('sms_sorter', event === 'sms_review');
 

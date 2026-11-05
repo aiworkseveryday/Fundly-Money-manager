@@ -11,6 +11,7 @@ export type Profile = {
   last_logged_on: string | null;
   xp: number;
   badges: string[];
+  monthly_income: number | null;
 };
 
 export type Account = {
@@ -23,6 +24,10 @@ export type Account = {
   sms_last4: string | null;
   /** false = savings kept aside: not counted in the Home total balance */
   include_in_total: boolean;
+  /** quick-add and SMS cards pick this account first */
+  is_default: boolean;
+  /** comma separated words that identify this account in SMS, e.g. "slice, nesfb" */
+  sms_keywords: string | null;
   archived: boolean;
   created_at: string;
 };
@@ -61,8 +66,6 @@ export type NewTransaction = Omit<Transaction, 'id' | 'source' | 'sms_hash'> & {
   sms_hash?: string | null;
 };
 
-export type Budget = { id: string; category_id: string; month: string; amount: number };
-
 export type Goal = {
   id: string;
   name: string;
@@ -95,6 +98,9 @@ export type SmsPending = {
   amount: number;
   merchant: string | null;
   account_last4: string | null;
+  /** slice atom (savings pot) named in the SMS */
+  atom: string | null;
+  atom_dir: 'in' | 'out' | null;
   occurred_at: string;
   status: 'pending' | 'accepted' | 'ignored';
 };
@@ -105,4 +111,55 @@ export type MonthlySpend = {
   category_id: string | null;
   total: number;
   tx_count: number;
+};
+
+export type PlanGroup = 'fixed' | 'saving' | 'bills' | 'travel' | 'health' | 'care' | 'misc';
+
+export type PlanItem = {
+  id: string;
+  name: string;
+  amount: number;
+  grp: PlanGroup;
+  category_id: string | null;
+  match_text: string | null;
+  is_checklist: boolean;
+  starts_on: string;
+  ends_on: string | null;
+  sort_order: number;
+};
+
+export type QuickTemplate = {
+  id: string;
+  label: string;
+  emoji: string;
+  amount: number;
+  category_id: string | null;
+  account_id: string | null;
+  sort_order: number;
+};
+
+export type Loan = {
+  id: string;
+  name: string;
+  lender: string | null;
+  emi: number;
+  annual_rate: number;
+  outstanding: number;
+  as_of: string;
+  total_months: number | null;
+  emi_day: number;
+  account_id: string | null;
+  sms_match: string | null;
+  prepay_per_year: number;
+  color: string;
+  closed_at: string | null;
+};
+
+export type LoanPayment = {
+  id: string;
+  loan_id: string;
+  kind: 'emi' | 'prepay';
+  amount: number;
+  paid_on: string;
+  transaction_id: string | null;
 };

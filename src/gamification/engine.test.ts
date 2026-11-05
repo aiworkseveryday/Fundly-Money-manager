@@ -9,6 +9,7 @@ const base: Profile = {
   last_logged_on: null,
   xp: 0,
   badges: [],
+  monthly_income: null,
 };
 const today = new Date(2026, 10, 2);
 

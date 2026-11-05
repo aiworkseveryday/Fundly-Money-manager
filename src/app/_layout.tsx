@@ -61,7 +61,6 @@ function RootStack() {
             <Stack.Screen name="accounts/edit" options={modal} />
             <Stack.Screen name="categories/index" />
             <Stack.Screen name="categories/edit" options={modal} />
-            <Stack.Screen name="budgets" />
             <Stack.Screen name="goals/edit" options={modal} />
             <Stack.Screen name="goals/[id]" />
             <Stack.Screen name="bills/index" />
@@ -69,6 +68,12 @@ function RootStack() {
             <Stack.Screen name="sms-inbox" />
             <Stack.Screen name="settings" />
             <Stack.Screen name="achievements" />
+            <Stack.Screen name="plan/index" />
+            <Stack.Screen name="plan/edit" options={modal} />
+            <Stack.Screen name="quick-edit" options={modal} />
+            <Stack.Screen name="loans/index" />
+            <Stack.Screen name="loans/[id]" />
+            <Stack.Screen name="loans/edit" options={modal} />
           </Stack.Protected>
           <Stack.Protected guard={!session}>
             <Stack.Screen name="sign-in" />

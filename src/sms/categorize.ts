@@ -2,7 +2,7 @@ import type { Category } from '@/data/types';
 
 // Common Indian merchants -> default category names seeded for every user
 const RULES: [RegExp, string][] = [
-  [/swiggy|zomato|domino|pizza|kfc|mcdonald|burger|starbucks|cafe|restaurant|eatsure|chai/i, 'Food & Dining'],
+  [/swiggy|zomato|domino|pizza|kfc|mcdonald|burger|starbucks|cafe|restaurant|eatsure|chai|\btea\b|snack/i, 'Food & Dining'],
   [/blinkit|zepto|bigbasket|instamart|dmart|grocer|jiomart|more retail|reliance smart|kirana/i, 'Groceries'],
   [/uber|ola|rapido|metro|irctc|redbus|petrol|fuel|hpcl|bpcl|indian oil|fastag|parking/i, 'Transport'],
   [/amazon|flipkart|myntra|ajio|meesho|nykaa|croma|tata cliq|decathlon/i, 'Shopping'],
@@ -11,7 +11,7 @@ const RULES: [RegExp, string][] = [
   [/apollo|pharm|medplus|1mg|netmeds|hospital|clinic|practo|diagnostic/i, 'Health'],
   [/rent|nobroker|landlord/i, 'Rent'],
   [/school|college|udemy|coursera|byju|unacademy|fees/i, 'Education'],
-  [/salary|payroll/i, 'Salary'],
+  [/salary|payroll|\b(pvt\.? ltd|private limited)\b/i, 'Salary'],
 ];
 
 export function guessCategory(text: string | null, kind: 'expense' | 'income', categories: Category[]): string | null {

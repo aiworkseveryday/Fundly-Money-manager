@@ -10,7 +10,7 @@ import { Chip, ChipRow } from '@/components/Chip';
 import { Header, Segmented } from '@/components/bits';
 import { Input } from '@/components/Input';
 import { Screen } from '@/components/Screen';
-import { useAccounts, useCategories, useDeleteTransaction, useSaveTransaction, useTransaction } from '@/data/hooks';
+import { defaultAccount, useAccounts, useCategories, useDeleteTransaction, useSaveTransaction, useTransaction } from '@/data/hooks';
 import type { Transaction, TxKind } from '@/data/types';
 import { useReward } from '@/gamification/Celebrations';
 import { addDays, formatDay, startOfDay } from '@/lib/dates';
@@ -41,8 +41,8 @@ function TransactionForm({ id, initial }: { id?: string; initial?: Transaction }
   const [toAccountId, setToAccountId] = useState<string | null>(initial?.to_account_id ?? null);
   const [note, setNote] = useState(initial?.note ?? '');
   const [date, setDate] = useState(() => (initial ? new Date(initial.occurred_at) : new Date()));
-  // Default to the first account until the user picks one
-  const accountId = pickedAccountId ?? accounts.data?.[0]?.id ?? null;
+  // Default to the main spending account (e.g. slice) until the user picks one
+  const accountId = pickedAccountId ?? defaultAccount(accounts.data)?.id ?? null;
 
   const cats = (categories.data ?? []).filter((c) => c.kind === (kind === 'income' ? 'income' : 'expense'));
   const value = parseAmount(amount);
